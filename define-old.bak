@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+DB="$HOME/.local/bin/define-script/dictionary.db"
+
+word=${1:-$(xclip -o -selection primary 2>/dev/null || wl-paste 2>/dev/null)}
+
+# Check for empty word or special characters
+[[ -z "$word" || "$word" =~ [\/] ]] && notify-send -h string:bgcolor:#bf616a -t 3000 "Invalid input." && exit 0
+
+# Check db exists
+[ ! -f "$DB" ] && notify-send -h string:bgcolor:#bf616a -t 3000 "Dictionary not found." && exit 1
+
+# Query SQLite - grab first 3 definitions
+def=$(sqlite3 "$DB" \
+  "SELECT pos, def FROM definitions WHERE word = '$word' COLLATE NOCASE LIMIT 3;" \
+  | awk -F'|' '{ print "\n" $1 ". " $2 }')
+
+# Check for no results
+[[ -z "$def" ]] && notify-send -h string:bgcolor:#bf616a -t 3000 "Invalid word." && exit 0
+
+notify-send -t 60000 "$word -" "$def"
